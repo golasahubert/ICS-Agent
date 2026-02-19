@@ -3,8 +3,8 @@
 import os
 import httpx
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "API TOKEN HERE")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "CHAT ID HERE")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "") #TELEGRAM BOTID:BOTPWD
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "") # TELEGRAM CHAT ID
 
 async def send_telegram_alert(message: str):
     """
@@ -28,4 +28,4 @@ async def send_telegram_alert(message: str):
 # Optional: test independently
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(send_telegram_alert("✅ Test: SCADAbr Telegram bot integration working."))
+    asyncio.run(send_telegram_alert("✅ Test: Honeypot Telegram bot integration working."))
