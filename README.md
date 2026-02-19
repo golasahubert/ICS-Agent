@@ -1,3 +1,7 @@
+# TO RUN THE AGENT FIRST FILL THE CREDENTIALS OF TELEGRAM BOT AND URLs 
+
+later, just sudo bash check_all.sh, which will create venv, install deps and check all
+
 This is the source code for ICSAgent that scans ICSHoneypot in the following way
 
 1. Check if the HMI is available
