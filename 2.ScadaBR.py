@@ -1,12 +1,12 @@
 import asyncio
+import html
+import os
 import re
+import sys
 import requests
-import io
-from contextlib import redirect_stdout
 from playwright.async_api import async_playwright
-from telegram_alert import send_telegram_alert
 
-URL = "http:///ScadaBR/"
+URL = os.environ.get("HMI_2_URL", "")
 USERNAME = "admin"
 PASSWORD = "admin"
 
@@ -41,6 +41,14 @@ def check_scadabr_reachable(url=URL):
         print(f"[1] [✘] Could not connect to {url} ({e})")
         return False
 
+def extract_login_error(page_html):
+    """Returns the error message shown on the login page, if any."""
+    for text in re.findall(r'class="[^"]*error[^"]*"[^>]*>([^<]*)', page_html, re.I):
+        text = " ".join(html.unescape(text).split())
+        if text:
+            return text[:300]
+    return None
+
 def attempt_scadabr_login(url=URL, username=USERNAME, password=PASSWORD):
     login_url = url + "login.htm"
     payload = {"username": username, "password": password}
@@ -52,6 +60,9 @@ def attempt_scadabr_login(url=URL, username=USERNAME, password=PASSWORD):
                 return True
             else:
                 print(f"[2] [!] Login attempt with {username}/{password} failed")
+                error = extract_login_error(response.text)
+                if error:
+                    print(f"[2] [!] Server error: {error}")
                 return False
     except requests.RequestException as e:
         print(f"[2] [✘] Could not connect to {login_url} ({e})")
@@ -145,30 +156,11 @@ async def full_check_scadabr():
         finally:
             await browser.close()
 
-def escape_html(text):
-    return (
-        text.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-    )
-
 if __name__ == "__main__":
-    buffer = io.StringIO()
-    with redirect_stdout(buffer):
-        result = asyncio.run(full_check_scadabr())
-
-    captured_output = buffer.getvalue()
-    print(captured_output)
+    result = asyncio.run(full_check_scadabr())
 
     if result:
         print("\n✅ FINAL RESULT: True")
     else:
         print("\n❌ FINAL RESULT: False")
-        safe_output = escape_html(captured_output.strip())
-        message = (
-            "<b>SCADAbr ALERT</b>\n"
-            "❌ <b>FINAL RESULT: False</b>\n\n"
-            "<b>Output:</b>\n"
-            f"<pre>{safe_output[-3500:]}</pre>"
-        )
-        asyncio.run(send_telegram_alert(message))
+    sys.exit(0 if result else 1)

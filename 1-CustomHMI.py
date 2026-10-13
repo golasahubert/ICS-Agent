@@ -1,12 +1,9 @@
+import os
+import sys
 import time
-import io
-import asyncio
-from contextlib import redirect_stdout
 from playwright.sync_api import sync_playwright
 
-from telegram_alert import send_telegram_alert
-
-URL = "http://" 
+URL = os.environ.get("HMI_1_URL", "")
 
 STATUS_TARGETS = [
     "#status-text-PLC1-\\(T-201-Control\\)", 
@@ -21,12 +18,6 @@ LEVEL_TARGETS = [
 ]
 
 
-
-def escape_html(text):
-    """Zabezpiecza logi, aby nie psuły formatowania HTML w Telegramie"""
-    if text:
-        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    return ""
 
 def check_connected(page):
     print("--- [CHECK] Connection Status ---")
@@ -134,35 +125,13 @@ def run_checks():
 
 
 def main():
-    buffer = io.StringIO()
-    
-    with redirect_stdout(buffer):
-        success = run_checks()
-        
-    captured_output = buffer.getvalue()
-    
-    print(captured_output)
+    success = run_checks()
 
     if not success:
-        print("\n❌ SYSTEM FAILURE - Sending Telegram Alert...")
-       
-        safe_logs = escape_html(captured_output.strip())
-        short_logs = safe_logs[-3000:] 
-        
-        message = (
-            "<b>🚨 ICS HONEYPOT ALERT 🚨</b>\n"
-            "❌ <b>Result: FAIL</b>\n"
-            "System detected an anomaly (Disconnection or Static Water Level).\n\n"
-            "<b>Logs:</b>\n"
-            f"<pre>{short_logs}</pre>"
-        )
-        try:
-            asyncio.run(send_telegram_alert(message))
-        except Exception as e:
-            print(f"Failed to run async telegram alert: {e}")
-            
+        print("\n❌ SYSTEM FAILURE")
     else:
-        print("\n✅ SYSTEM HEALTHY - No alert needed.")
+        print("\n✅ SYSTEM HEALTHY")
+    sys.exit(0 if success else 1)
 
 if __name__ == "__main__":
     main()

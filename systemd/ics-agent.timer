@@ -1,0 +1,10 @@
+[Unit]
+Description=Run ICS Honeypot Agent every hour
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+Unit=ics-agent.service
+
+[Install]
+WantedBy=timers.target
