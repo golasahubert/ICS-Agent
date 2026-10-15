@@ -9,6 +9,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -27,6 +28,8 @@ HMIS = [
 ]
 
 CHECK_TIMEOUT = 300          # seconds per HMI
+CHECK_ATTEMPTS = 3           # alert only if every attempt fails
+RETRY_DELAY = 30             # seconds between attempts
 OK_REPORT_PERIOD = timedelta(hours=24)
 MAX_RUN_GAP = timedelta(hours=2)  # longer gap between runs breaks the OK streak
 
@@ -76,6 +79,20 @@ def run_check(script, url_var):
         return False, f"Check timed out after {CHECK_TIMEOUT}s"
     output = (proc.stdout + proc.stderr).strip()
     return proc.returncode == 0, output
+
+
+def run_check_with_retries(script, url_var):
+    """Runs a check up to CHECK_ATTEMPTS times, stopping at the first success.
+    Returns (ok, output of the last attempt)."""
+    for attempt in range(1, CHECK_ATTEMPTS + 1):
+        ok, output = run_check(script, url_var)
+        print(output)
+        print(f"[attempt {attempt}/{CHECK_ATTEMPTS}] {'OK' if ok else 'FAIL'}")
+        if ok or not os.environ.get(url_var):
+            return ok, output
+        if attempt < CHECK_ATTEMPTS:
+            time.sleep(RETRY_DELAY)
+    return False, f"Failed {CHECK_ATTEMPTS}/{CHECK_ATTEMPTS} attempts, last output:\n{output}"
 
 
 def failure_reason(output):
@@ -146,8 +163,7 @@ def main():
     all_ok = True
     for name, script, url_var in HMIS:
         print(f"[->] {name}")
-        ok, output = run_check(script, url_var)
-        print(output)
+        ok, output = run_check_with_retries(script, url_var)
         print(f"[{'OK' if ok else 'FAIL'}] {name}\n")
         if not ok:
             all_ok = False

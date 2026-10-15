@@ -8,4 +8,4 @@ Type=oneshot
 User=@RUN_USER@
 WorkingDirectory=@AGENT_DIR@
 ExecStart=@AGENT_DIR@/venv/bin/python @AGENT_DIR@/run_all.py
-TimeoutStartSec=45min
+TimeoutStartSec=59min
